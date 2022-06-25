@@ -30,7 +30,7 @@ public class SMSUUtils {
 	public static void main(String[] args_) throws Exception {
 		Integer integer = ValidateCodeUtils.generateValidateCode(4);
 		java.util.List<String> args = java.util.Arrays.asList(args_);
-		com.aliyun.dysmsapi20170525.Client client = SMSUUtils.createClient("LTAI5tGRFEsUt96mseRB9fsT", "r8ZKtHUGbq8LtIgiJ1l6cXe6hCFbXK");
+		com.aliyun.dysmsapi20170525.Client client = SMSUUtils.createClient("", "");
 		String format = String.format("{\"code\":\"%s\"}", integer);
 		SendSmsRequest sendSmsRequest = new SendSmsRequest()
 				.setSignName("阿里云短信测试")
