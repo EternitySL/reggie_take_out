@@ -12,8 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 //@EnableTransactionManagement
 public class  ReggieApplicaton {
     private EmployeeController employeeController;
-
-    public static    void main(String[] args) {
+    public static void main(String[] args) {
         SpringApplication.run(ReggieApplicaton.class, args);
 
 
