@@ -28,7 +28,9 @@ public class SMSUUtils {
 	}
 
 	public static void main(String[] args_) throws Exception {
+		//设置验证码
 		Integer integer = ValidateCodeUtils.generateValidateCode(4);
+
 		java.util.List<String> args = java.util.Arrays.asList(args_);
 		com.aliyun.dysmsapi20170525.Client client = SMSUUtils.createClient("", "");
 		String format = String.format("{\"code\":\"%s\"}", integer);
