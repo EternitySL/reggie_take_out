@@ -11,9 +11,11 @@ import com.shuangleng.reggie.service.imp.DishServiceImp;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -29,6 +31,9 @@ public class DishController {
     private DishServiceImp dishServiceImp;
     @Autowired
     private CategoryServiceImp categoryServiceImp;
+    //测试添加到缓存
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @GetMapping("/page")
     public R<Page<DishDto>> page(int page, int pageSize, String name) {
@@ -96,16 +101,25 @@ public class DishController {
     public R<String> update(@RequestBody DishDto dishDto) {
         log.info("dishDto.toString()");
         dishServiceImp.updateWithFlavor(dishDto);
+        //清理所有菜品的缓存数据
+        //Set keys = redisTemplate.keys("dish_*");
+        //redisTemplate.delete(keys);
+
+        //清理某一分类下的数据
+        String key = "dish_"+dishDto.getCategoryId();
+        redisTemplate.delete(key);
+
         return R.success("成功保存");
 
     }
+
     /**
-    * @Description: 批量或者单个停售菜品
-    * @Param: [id, ids]
-    * @return: com.shuangleng.reggie.common.R<java.util.List>
-    * @Author: shuangleng
-    * @Date: 2022/6/21 20:05
-    */
+     * @Description: 批量或者单个停售菜品
+     * @Param: [id, ids]
+     * @return: com.shuangleng.reggie.common.R<java.util.List>
+     * @Author: shuangleng
+     * @Date: 2022/6/21 20:05
+     */
     @PostMapping("/status/{id}")
     public R<List<Dish>> Stop(@PathVariable long id, @RequestParam List<Long> ids) {
         log.info(ids.toString());
@@ -126,37 +140,42 @@ public class DishController {
     }
 
     /**
-    * @Description: 菜品的批量删除
-    * @Param: [ids]
-    * @return: com.shuangleng.reggie.common.R<java.lang.String>
-    * @Author: shuangleng
-    * @Date: 2022/6/21 20:12
-    */
+     * @Description: 菜品的批量删除
+     * @Param: [ids]
+     * @return: com.shuangleng.reggie.common.R<java.lang.String>
+     * @Author: shuangleng
+     * @Date: 2022/6/21 20:12
+     */
     @DeleteMapping
     public R<String> delete(@RequestParam List<Long> ids) {
         dishServiceImp.removeByIds(ids);
         return R.success("删除成功");
     }
+
     /**
-    * @Description: 返回套餐中的添加菜品
-    * @Param: [categoryId]
-    * @return: com.shuangleng.reggie.common.R<java.lang.String>
-    * @Author: shuangleng
-    * @Date: 2022/6/23 10:14
-    */
+     * @Description: 返回套餐中的添加菜品
+     * @Param: [categoryId]
+     * @return: com.shuangleng.reggie.common.R<java.lang.String>
+     * @Author: shuangleng
+     * @Date: 2022/6/23 10:14
+     */
     @GetMapping("/list")
-    public R<List<Dish>> list(Dish dish){
+    public R<List<Dish>> list(Dish dish) {
+        String name = "dish_"+dish.getCategoryId();
+        //如果缓存有则是直接返回
+        List<Dish> o = (List<Dish>) redisTemplate.opsForValue().get(name);
+        if (o != null) {
+            return R.success(o);
+        }
         LambdaQueryWrapper<Dish> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(dish != null,Dish::getCategoryId,dish.getCategoryId());
-        wrapper.eq(Dish::getStatus,1);
+        wrapper.eq(dish != null, Dish::getCategoryId, dish.getCategoryId());
+        wrapper.eq(Dish::getStatus, 1);
         List<Dish> list = dishServiceImp.list(wrapper);
+        //没有的话则是设置缓存存活时间，然后返回
+        redisTemplate.opsForValue().set(name, list, 60, TimeUnit.MINUTES);
         return R.success(list);
 
     }
-
-
-
-
 
 
 }
